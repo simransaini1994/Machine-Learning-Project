@@ -9,13 +9,13 @@ import numpy as np
 import pandas as pd
 from sklearn.svm import SVC
 
-NoComp = 11
-data = pd.read_excel('Datasets/Gear5.xlsx')
+NoComp = 13
+data = pd.read_excel('Datasets/Gear15.xlsx')
 # Dataset is now stored in a Pandas Dataframe
 data = data.dropna(axis = 1, how ='all') 
 
 #removing columns havin more than 90% zero
-data=data.drop(columns=data.columns[((data==0).mean()>0.90)],axis=1)
+data=data.drop(columns=data.columns[((data==0).mean()>0.70)],axis=1)
 print(data.info)
 
 #saving lables in y
@@ -32,10 +32,11 @@ X_data=sc.fit_transform(X_data)
 from sklearn.model_selection import train_test_split
 
 X_train, X_test, y_train, y_test = train_test_split(X_data, y_data, test_size=0.2, random_state=1)
+#X_train, X_val, y_train, y_val   = train_test_split(X_train, y_train, test_size=0.2, random_state=1)
 
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 
-lda = LDA(n_components=NoComp)
+lda = LDA(n_components=NoComp,solver='eigen',shrinkage ='auto')
 X_train = lda.fit_transform(X_train, y_train)
 X_test = lda.transform(X_test)
 X_t = X_train.transpose()
@@ -81,7 +82,8 @@ from sklearn.neighbors import KNeighborsClassifier
 
 classifier_knn=KNeighborsClassifier()
 param_grid_knn = {
-    'n_neighbors': [1,2,3,4,5]
+    'n_neighbors': [1],
+    "metric": ["euclidean", "cityblock"],"algorithm" : ['auto', 'ball_tree', 'kd_tree', 'brute']
 }
 
 #tuning parameter of knn
@@ -105,12 +107,22 @@ f1_score_knn=cross_val_score(optimal_classifier_knn, X_train, y_train, cv=10,sco
 from sklearn.neural_network import MLPClassifier
 
 classifier_mlp=MLPClassifier()
-param_grid_mlp = {
-    'activation': ['identity','relu','tanh','identity'],
-    'solver':['lbfgs','sgd','adam'],
-     'alpha':[1e-5]
+'''
+param_grid_mlp = {'hidden_layer_sizes': [(600,600) ],
+    'activation': ['tanh'],
+    'solver':['lbfgs'],
+     'alpha':[.05],
+     'learning_rate': ['constant']
 }
-grid_search2 = GridSearchCV(estimator = classifier_mlp, param_grid=param_grid_mlp, cv = 10, n_jobs = -1, verbose = 2)
+'''
+param_grid_mlp = {
+        'hidden_layer_sizes': [(100,100) ],
+    'activation': ['tanh'],
+    'solver':['lbfgs'],
+    'alpha':[.05,.1,.01,.001,.0001,.00001,.002], 
+     'learning_rate': ['constant','adaptive','invscaling']
+     }
+grid_search2 = GridSearchCV(estimator = classifier_mlp, param_grid=param_grid_mlp, cv = 2, n_jobs = -1, verbose = 2)
 #classifier_randomforest = RandomForestClassifier( max_depth=150, n_estimators=128 )
 #classifier_knn= KNeighborsClassifier(n_neighbors=2 ,leaf_size=30)
 grid_search2.fit(X_train,y_train)
@@ -134,7 +146,7 @@ f1_score_mlp=cross_val_score(optimal_classifier_mlp, X_train, y_train, cv=10,sco
 RBFClassifier = SVC(kernel='rbf')
 param_grid_rbf = {
       'kernel':['rbf'],
-     'gamma': [ 1e-4,0.00001],
+     'gamma': [ 0.1],
                      'C': [1000,10000,100000]
                    
 }
